@@ -411,16 +411,28 @@ def _delay_heat_color(value, vmin, vmax):
 
 
 def style_delay_heatmap(df, column="predicted_delay"):
-    """pandas Styler gradient (no matplotlib dependency) so the worst
-    stations pop out without reading every row."""
+    """Format numeric values to 1 decimal place and apply delay heatmap."""
     if column not in df.columns or df.empty:
         return df
+
     vmin, vmax = df[column].min(), df[column].max()
 
     def _apply(col):
-        return [f"background-color:{_delay_heat_color(v, vmin, vmax)}; color:#1E293B; font-weight:600;" for v in col]
+        return [
+            f"background-color:{_delay_heat_color(v, vmin, vmax)}; "
+            f"color:#1E293B; font-weight:600;"
+            for v in col
+        ]
 
-    return df.style.apply(_apply, subset=[column])
+    return (
+        df.style
+        .apply(_apply, subset=[column])
+        .format({
+            "predicted_delay": "{:.1f}",
+            "low": "{:.1f}",
+            "high": "{:.1f}",
+        })
+    )
 
 
 WEATHER_ICONS = {
