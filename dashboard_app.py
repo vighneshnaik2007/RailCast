@@ -525,12 +525,12 @@ with bar_r1:
 with bar_r2:
     india_time = datetime.now(ZoneInfo("Asia/Kolkata"))
 
-st.markdown(
-    f'<div style="margin-top:28px; color:#64748B; font-size:0.85rem;">'
-    f'📅 {india_time.strftime("%d %b %Y, %I:%M %p")}'
-    f'</div>',
-    unsafe_allow_html=True
-)
+    st.markdown(
+        f'<div style="margin-top:28px; color:#64748B; font-size:0.85rem;">'
+        f'📅 {india_time.strftime("%d %b %Y, %I:%M %p")}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 st.selectbox("⚠️ Simulate a disruption", [
     "None", "Fog", "Heavy Rain / Storm", "Speed Restriction",
