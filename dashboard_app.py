@@ -91,9 +91,46 @@ st.markdown("""
     section[data-testid="stSidebar"] * { color: #E7EBF5 !important; }
 
     .rc-logo { font-size: 1.3rem; font-weight: 800; color: white; }
-    .rc-nav-item { padding: 8px 12px; border-radius: 8px; margin-bottom: 4px; color: #94A3B8; font-size: 0.92rem; }
-    .rc-nav-active { background: #2563EB; color: white !important; font-weight: 600; }
+
+    /* ---- Sidebar nav items: icon + label, left-bar accent instead of a
+       full solid pill, so the active state reads as "product nav" rather
+       than a plain radio dot. Shared by both the static "Dashboard" item
+       and the st.radio-based view switcher below. ---- */
+    .rc-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+        border-radius: 8px; margin-bottom: 4px; color: #94A3B8; font-size: 0.92rem;
+        border-left: 3px solid transparent; }
+    .rc-nav-active { background: rgba(37, 99, 235, 0.18); color: white !important;
+        font-weight: 700; border-left: 3px solid #2563EB; }
     .rc-mae { font-size: 1.4rem; font-weight: 800; color: white; }
+
+    /* Restyle Streamlit's radio (used for Passenger / Control Room) to look
+       like the same icon-led nav list instead of default radio dots. */
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] > div[role="radiogroup"] {
+        display: flex; flex-direction: column; gap: 2px; margin-top: 2px;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label {
+        display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+        border-radius: 8px; border-left: 3px solid transparent; cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease; margin-bottom: 0 !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:hover {
+        background: rgba(255,255,255,0.06);
+    }
+    /* hide the native circle indicator — the left accent bar + bold text
+       carries the "selected" state instead */
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label > div:first-child {
+        display: none !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label div[data-testid="stMarkdownContainer"] p {
+        font-size: 0.92rem !important; font-weight: 500; margin: 0;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) {
+        background: rgba(37, 99, 235, 0.18);
+        border-left: 3px solid #2563EB;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label:has(input:checked) p {
+        color: #FFFFFF !important; font-weight: 700 !important;
+    }
 
     .rc-hero {
         border-radius: 16px; padding: 26px 30px; margin-bottom: 16px;
@@ -108,10 +145,24 @@ st.markdown("""
 
     .rc-card { border-radius: 14px; padding: 16px 18px; color: white; min-height: 96px;
         box-shadow: var(--rc-shadow-raised); /* raised elevation */ }
-    .rc-card .rc-label { font-size: 0.75rem; opacity: 0.9; letter-spacing: 0.03em; margin-bottom: 6px; }
-    .rc-card .rc-value { font-size: 1.55rem; font-weight: 800; }
-    .rc-card .rc-sub { font-size: 0.72rem; opacity: 0.9; margin-top: 3px; }
-    .rc-delta { font-size: 0.95rem; margin-left: 6px; font-weight: 700; }
+    /* ---- Tighter type scale: small/light label, big/bold hero number,
+       small/muted sub-line — makes the delay & ETA figures pop. ---- */
+    .rc-card .rc-label { font-size: 0.68rem; opacity: 0.85; letter-spacing: 0.06em;
+        margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+    .rc-card .rc-value { font-size: 1.85rem; font-weight: 800; line-height: 1.15; }
+    .rc-card .rc-sub { font-size: 0.72rem; opacity: 0.85; margin-top: 4px; }
+    .rc-delta { font-size: 1rem; margin-left: 6px; font-weight: 700; }
+
+    /* ---- Pending / "waiting for data" cards (Actual Arrival, Prediction
+       Error before feedback exists) — dashed border + hourglass reads as
+       "not yet available" rather than "broken". ---- */
+    .rc-card-pending { border-radius: 14px; padding: 16px 18px; min-height: 96px;
+        background: #F8FAFC; border: 2px dashed #CBD5E1; box-shadow: none;
+        display: flex; flex-direction: column; justify-content: center; }
+    .rc-card-pending .rc-label { font-size: 0.68rem; color: #64748B; letter-spacing: 0.06em;
+        margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
+    .rc-card-pending .rc-value { font-size: 1.05rem; font-weight: 700; color: #94A3B8; }
+    .rc-card-pending .rc-sub { font-size: 0.72rem; color: #94A3B8; margin-top: 4px; }
 
     .rc-blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
     .rc-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
@@ -123,7 +174,8 @@ st.markdown("""
     .rc-highlight { border: 3px solid #FACC15; box-shadow: 0 0 0 4px rgba(250,204,21,0.25), 0 4px 14px rgba(0,0,0,0.15); }
 
     .rc-panel { background: white; border-radius: 14px; padding: 16px 18px; box-shadow: var(--rc-shadow-flat); margin-bottom: 14px; }
-    .rc-panel h4 { margin-top: 0; margin-bottom: 10px; }
+    .rc-panel h4 { margin-top: 0; margin-bottom: 10px; font-size: 0.92rem; font-weight: 700;
+        color: #334155; text-transform: uppercase; letter-spacing: 0.04em; }
 
     .rc-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
     .rc-badge-live { background: #dcfce7; color: #166534; }
@@ -161,7 +213,28 @@ st.markdown("""
     .rc-oc-item .rc-oc-label { font-size: 0.68rem; color: #64748B; margin: 4px 0 2px 0; }
     .rc-oc-item .rc-oc-value { font-weight: 700; color: #0F172A; font-size: 0.88rem; }
 
+    /* ---- Themed tint per condition, matching its icon, so the row reads
+       as designed rather than 6 identical gray tiles. ---- */
+    .rc-oc-item.rc-oc-blue   { background: #EFF6FF; }
+    .rc-oc-item.rc-oc-blue   .rc-oc-icon { filter: none; }
+    .rc-oc-item.rc-oc-orange { background: #FFF7ED; }
+    .rc-oc-item.rc-oc-purple { background: #F5F3FF; }
+    .rc-oc-item.rc-oc-slate  { background: #F1F5F9; }
+    .rc-oc-item.rc-oc-red    { background: #FEF2F2; }
+    .rc-oc-item.rc-oc-green  { background: #F0FDF4; }
+
     div[data-testid="stMetricValue"] { font-size: 1.4rem; }
+
+    /* =========================================================================
+       SKELETON LOADING — shimmering placeholder blocks shown in place of the
+       metric cards / map / timeline while api_predict + api_eta are in flight,
+       instead of a blank flash.
+       ========================================================================= */
+    @keyframes rc-shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    .rc-skel { border-radius: 14px; background: linear-gradient(90deg, #E2E8F0 25%, #EDF1F7 37%, #E2E8F0 63%);
+        background-size: 800px 100%; animation: rc-shimmer 1.4s ease-in-out infinite; }
+    .rc-skel-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 14px; }
+    .rc-skel-card { height: 96px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -243,6 +316,15 @@ def metric_card(label, value, sub="", css="rc-blue", highlight=False, icon="", d
     return f'<div class="{classes}"><div class="rc-label">{icon_html}{label}</div><div class="rc-value">{value}{delta_html}</div>{sub_html}</div>'
 
 
+def pending_card(label, message, icon="⏳"):
+    """Renders a dashed-border 'waiting for data' card — used for Actual
+    Arrival / Prediction Error before passenger feedback exists, so it reads
+    as 'not yet available' rather than 'disabled' or broken."""
+    return (f'<div class="rc-card-pending"><div class="rc-label">{label}</div>'
+            f'<div class="rc-value">{icon} Waiting for feedback</div>'
+            f'<div class="rc-sub">{message}</div></div>')
+
+
 def status_card(status, sub, css="rc-green", progress_pct=0, icon=""):
     icon_html = f'<span style="margin-right:6px;">{icon}</span>' if icon else ""
     sub_html = f'<div class="rc-sub">{sub}</div>' if sub else ""
@@ -279,8 +361,20 @@ def mini_bar(label, minutes, max_minutes, color):
     )
 
 
-def oc_item(icon, label, value):
-    return f'<div class="rc-oc-item"><div class="rc-oc-icon">{icon}</div><div class="rc-oc-label">{label}</div><div class="rc-oc-value">{value}</div></div>'
+def oc_item(icon, label, value, theme="slate"):
+    return (f'<div class="rc-oc-item rc-oc-{theme}"><div class="rc-oc-icon">{icon}</div>'
+            f'<div class="rc-oc-label">{label}</div><div class="rc-oc-value">{value}</div></div>')
+
+
+def skeleton_cards_row(n=5):
+    cells = '<div class="rc-skel rc-skel-card"></div>' * n
+    return f'<div class="rc-skel-row">{cells}</div>'
+
+
+def skeleton_panels_row(n=3, height=330):
+    cells = "".join(f'<div class="rc-skel" style="height:{height}px;"></div>' for _ in range(n))
+    cols = " ".join(["1fr"] * n)
+    return f'<div style="display:grid; grid-template-columns:{cols}; gap:14px; margin-bottom:14px;">{cells}</div>'
 
 
 # =============================================================================
@@ -343,8 +437,12 @@ with st.sidebar:
     st.markdown('<div class="rc-logo">🚆 RailCast</div>', unsafe_allow_html=True)
     st.caption("Dynamic ETA & Delay Intelligence")
     st.markdown("---")
-    st.markdown('<div class="rc-nav-item rc-nav-active">🏠 Dashboard</div>', unsafe_allow_html=True)
-    page = st.radio("Dashboard view", ["Passenger View", "Control Room / Officer"], label_visibility="collapsed")
+    st.markdown('<div class="rc-nav-item rc-nav-active">🏠&nbsp;&nbsp;Dashboard</div>', unsafe_allow_html=True)
+    page_choice = st.radio(
+        "Dashboard view", ["🧍  Passenger View", "🎛️  Control Room / Officer"],
+        label_visibility="collapsed"
+    )
+    page = "Control Room / Officer" if "Control Room" in page_choice else "Passenger View"
     st.markdown("---")
     st.markdown("**Model Reference**")
     st.markdown('<div class="rc-mae">7.88 minutes</div>', unsafe_allow_html=True)
@@ -420,11 +518,22 @@ st.selectbox("⚠️ Simulate a disruption", [
 ], key="disruption")
 disruption = st.session_state.disruption
 
-with st.spinner(""):
-    result = api_predict(selected_train, current_station, disruption, current_date)
-    forecast = api_eta(selected_train, current_station, current_date)
+# ---- Skeleton loading: show shimmering placeholders for the cards + the
+# map/timeline (/ actions) row while the prediction call is in flight, then
+# swap them for the real content — no blank-page flash. ----
+dashboard_skeleton = st.empty()
+with dashboard_skeleton.container():
+    st.markdown(skeleton_cards_row(5), unsafe_allow_html=True)
+    st.markdown(
+        skeleton_panels_row(3 if page == "Control Room / Officer" else 2, height=330),
+        unsafe_allow_html=True,
+    )
 
+result = api_predict(selected_train, current_station, disruption, current_date)
+forecast = api_eta(selected_train, current_station, current_date)
 live_state = api_live_state().get(str(selected_train)) if live_on else None
+
+dashboard_skeleton.empty()
 
 # =============================================================================
 # METRIC CARDS — 5 across. Card 2 (ETA) is the highlighted headline, 24-hour
@@ -451,13 +560,13 @@ with c3:
         actual_eta = compute_eta_client(result["sch_arr"], actual_delay)
         st.markdown(metric_card("ACTUAL ARRIVAL", actual_eta, f"+{actual_delay:.0f} min delay", "rc-orange", icon="✅", delta=actual_delay), unsafe_allow_html=True)
     else:
-        st.markdown(metric_card("ACTUAL ARRIVAL", "--", "Awaiting passenger feedback", "rc-gray", icon="🕓"), unsafe_allow_html=True)
+        st.markdown(pending_card("ACTUAL ARRIVAL", "Log it below to fill this in."), unsafe_allow_html=True)
 with c4:
     if actual_delay is not None:
         error_min = abs(predicted_delay - actual_delay)
         st.markdown(metric_card("PREDICTION ERROR", f"{error_min:.0f} min", "Our prediction vs actual", "rc-purple", icon="📏"), unsafe_allow_html=True)
     else:
-        st.markdown(metric_card("PREDICTION ERROR", "--", "Our prediction vs actual", "rc-gray", icon="📏"), unsafe_allow_html=True)
+        st.markdown(pending_card("PREDICTION ERROR", "Needs an actual arrival to compare."), unsafe_allow_html=True)
 with c5:
     # Judged by actual delay when we have it, so this card and the Actual
     # Arrival card are never contradicting each other.
@@ -637,10 +746,10 @@ cond = result.get("conditions", {})
 weather_icon = WEATHER_ICONS.get(cond.get("weather"), "🌤️")
 st.markdown('<div class="rc-panel"><h4>🌐 Operating Conditions (Current Section)</h4>'
     '<div class="rc-oc-grid">'
-    + oc_item(weather_icon, "WEATHER", cond.get("weather", "--"))
-    + oc_item("👁️", "VISIBILITY", f'{cond.get("visibility_m", "--")} m')
-    + oc_item("💧", "RAINFALL", f'{cond.get("rainfall_mm", "--")} mm')
-    + oc_item("🌡️", "TEMPERATURE", f'{cond.get("temperature_c", "--")} °C')
-    + oc_item("🚗", "CONGESTION", f'{cond.get("congestion_score", "--")}')
-    + oc_item("⏱️", "SECTION TIME", f'{cond.get("section_time_min", "--")} min')
+    + oc_item(weather_icon, "WEATHER", cond.get("weather", "--"), "purple")
+    + oc_item("👁️", "VISIBILITY", f'{cond.get("visibility_m", "--")} m', "slate")
+    + oc_item("💧", "RAINFALL", f'{cond.get("rainfall_mm", "--")} mm', "blue")
+    + oc_item("🌡️", "TEMPERATURE", f'{cond.get("temperature_c", "--")} °C', "orange")
+    + oc_item("🚗", "CONGESTION", f'{cond.get("congestion_score", "--")}', "red")
+    + oc_item("⏱️", "SECTION TIME", f'{cond.get("section_time_min", "--")} min', "green")
     + '</div></div>', unsafe_allow_html=True)
