@@ -1,5 +1,20 @@
-   streamlit
-   xgboost
-   pandas
-   joblib
-   scikit-learn
+# --- API backend (api_main.py) ---
+fastapi
+uvicorn
+pydantic
+joblib
+numpy
+pandas
+xgboost
+scikit-learn      # needed to unpickle xgb_model.pkl / residual_model.pkl if saved with sklearn's XGBRegressor wrapper
+
+# --- Dashboard frontend (dashboard_app.py) ---
+streamlit
+streamlit-autorefresh
+folium
+streamlit-folium
+requests
+
+# --- Launcher (run_all.py) ---
+# uvicorn and requests already listed above; subprocess/sys/threading/time are
+# part of the Python standard library, no package needed.
