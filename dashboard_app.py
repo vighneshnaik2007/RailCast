@@ -439,7 +439,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown('<div class="rc-nav-item rc-nav-active">🏠&nbsp;&nbsp;Dashboard</div>', unsafe_allow_html=True)
     page_choice = st.radio(
-        "Dashboard view", ["🧍  Passenger View", "🎛️  Control Room / Officer"],
+        "Dashboard view", [" Passenger View", " Control Room / Officer"],
         label_visibility="collapsed"
     )
     page = "Control Room / Officer" if "Control Room" in page_choice else "Passenger View"
