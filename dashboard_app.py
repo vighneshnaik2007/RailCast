@@ -20,6 +20,7 @@ Changes in this version vs your last one:
 import os
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
@@ -522,7 +523,14 @@ current_date = journey_df.loc[row_index, "date"] if "date" in journey_df.columns
 with bar_r1:
     st.markdown(f'<div style="margin-top:28px;"><span class="rc-badge rc-badge-live">● Running</span> &nbsp;<b>Train {selected_train}</b></div>', unsafe_allow_html=True)
 with bar_r2:
-    st.markdown(f'<div style="margin-top:28px; color:#64748B; font-size:0.85rem;">📅 {datetime.now().strftime("%d %b %Y, %I:%M %p")}</div>', unsafe_allow_html=True)
+    india_time = datetime.now(ZoneInfo("Asia/Kolkata"))
+
+st.markdown(
+    f'<div style="margin-top:28px; color:#64748B; font-size:0.85rem;">'
+    f'📅 {india_time.strftime("%d %b %Y, %I:%M %p")}'
+    f'</div>',
+    unsafe_allow_html=True
+)
 
 st.selectbox("⚠️ Simulate a disruption", [
     "None", "Fog", "Heavy Rain / Storm", "Speed Restriction",
