@@ -80,6 +80,12 @@ st.set_page_config(page_title="RailCast", layout="wide", page_icon="🚆")
 # =============================================================================
 st.markdown("""
 <style>
+    :root {
+        /* ---- Elevation system: 3 consistent shadow depths ---- */
+        --rc-shadow-flat: 0 1px 3px rgba(15, 23, 42, 0.07);
+        --rc-shadow-raised: 0 4px 12px rgba(15, 23, 42, 0.12);
+        --rc-shadow-floating: 0 14px 30px rgba(15, 23, 42, 0.20);
+    }
     .stApp { background-color: #F1F5F9; }
     section[data-testid="stSidebar"] { background-color: #0B1220; }
     section[data-testid="stSidebar"] * { color: #E7EBF5 !important; }
@@ -93,16 +99,19 @@ st.markdown("""
         border-radius: 16px; padding: 26px 30px; margin-bottom: 16px;
         background: linear-gradient(120deg, #0B1220 0%, #1E3A8A 55%, #2563EB 100%);
         color: white; position: relative; overflow: hidden;
+        box-shadow: var(--rc-shadow-floating); /* floating elevation */
     }
     .rc-hero h1 { margin: 0; font-size: 1.7rem; font-style: italic; }
     .rc-tricolor { height: 4px; width: 90px; margin: 6px 0 8px 0;
         background: linear-gradient(90deg, #FF9933 33%, #FFFFFF 33%, #FFFFFF 66%, #138808 66%); border-radius: 2px; }
     .rc-hero p { margin: 0; color: #CBD5E1; font-style: italic; font-size: 0.95rem; }
 
-    .rc-card { border-radius: 14px; padding: 16px 18px; color: white; min-height: 96px; }
+    .rc-card { border-radius: 14px; padding: 16px 18px; color: white; min-height: 96px;
+        box-shadow: var(--rc-shadow-raised); /* raised elevation */ }
     .rc-card .rc-label { font-size: 0.75rem; opacity: 0.9; letter-spacing: 0.03em; margin-bottom: 6px; }
     .rc-card .rc-value { font-size: 1.55rem; font-weight: 800; }
     .rc-card .rc-sub { font-size: 0.72rem; opacity: 0.9; margin-top: 3px; }
+    .rc-delta { font-size: 0.95rem; margin-left: 6px; font-weight: 700; }
 
     .rc-blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
     .rc-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
@@ -113,24 +122,41 @@ st.markdown("""
 
     .rc-highlight { border: 3px solid #FACC15; box-shadow: 0 0 0 4px rgba(250,204,21,0.25), 0 4px 14px rgba(0,0,0,0.15); }
 
-    .rc-panel { background: white; border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(20,20,50,0.06); margin-bottom: 14px; }
+    .rc-panel { background: white; border-radius: 14px; padding: 16px 18px; box-shadow: var(--rc-shadow-flat); margin-bottom: 14px; }
     .rc-panel h4 { margin-top: 0; margin-bottom: 10px; }
 
     .rc-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
     .rc-badge-live { background: #dcfce7; color: #166534; }
     .rc-badge-delay { background: #fee2e2; color: #991b1b; }
 
+    /* ---- Status/risk pill badges — same idea as the STATUS card, reused
+       for Seasonal Risk and Operational Actions tags ---- */
+    .rc-pill { display: inline-block; padding: 3px 11px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.01em; }
+    .rc-pill-green  { background: #dcfce7; color: #166534; }
+    .rc-pill-amber  { background: #fef3c7; color: #92400e; }
+    .rc-pill-red    { background: #fee2e2; color: #991b1b; }
+    .rc-pill-gray   { background: #e2e8f0; color: #475569; }
+
     .rc-progress-track { background: #E2E8F0; border-radius: 999px; height: 8px; width: 100%; }
     .rc-progress-fill { background: #22c55e; border-radius: 999px; height: 8px; }
 
+    /* Legacy horizontal bar-row (kept in case other code still uses it) */
     .rc-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; }
     .rc-bar-label { width: 60px; color: #475569; }
     .rc-bar-track { flex: 1; background: #E2E8F0; border-radius: 6px; height: 14px; position: relative; }
     .rc-bar-fill { height: 14px; border-radius: 6px; }
     .rc-bar-value { width: 46px; text-align: right; font-weight: 600; color: #0F172A; }
 
+    /* ---- Vertical bar-row: label sits ABOVE the bar so long disruption
+       names ("Signal Halt / Unscheduled Stoppage") never wrap into a thin
+       bar and look broken. Long labels ellipsis with a native tooltip. ---- */
+    .rc-bar-row-v { margin-bottom: 12px; font-size: 0.82rem; }
+    .rc-bar-toprow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+    .rc-bar-label-v { color: #475569; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 78%; }
+    .rc-bar-value-v { font-weight: 700; color: #0F172A; white-space: nowrap; }
+
     .rc-oc-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; text-align: center; }
-    .rc-oc-item { background: #F8FAFC; border-radius: 10px; padding: 10px 6px; }
+    .rc-oc-item { background: #F8FAFC; border-radius: 10px; padding: 10px 6px; box-shadow: var(--rc-shadow-flat); }
     .rc-oc-item .rc-oc-icon { font-size: 1.2rem; }
     .rc-oc-item .rc-oc-label { font-size: 0.68rem; color: #64748B; margin: 4px 0 2px 0; }
     .rc-oc-item .rc-oc-value { font-weight: 700; color: #0F172A; font-size: 0.88rem; }
@@ -206,28 +232,101 @@ def compute_eta_client(sch_arr, delay_minutes):
 # these across multiple lines with a blank line in the middle; that's exactly
 # what caused the stray "</div>" text bug in an earlier version.
 # =============================================================================
-def metric_card(label, value, sub="", css="rc-blue", highlight=False):
+def metric_card(label, value, sub="", css="rc-blue", highlight=False, icon="", delta=None):
+    """delta: optional signed number. Positive renders a red ▲ (worse/more
+    delay), negative a green ▼ (better/less delay), zero a neutral ▬ —
+    same visual language as a stock ticker, per the icons+delta request."""
     classes = f"rc-card {css}" + (" rc-highlight" if highlight else "")
+    icon_html = f'<span style="margin-right:6px;">{icon}</span>' if icon else ""
+    delta_html = f'<span class="rc-delta">{delta_arrow(delta)}</span>' if delta is not None else ""
     sub_html = f'<div class="rc-sub">{sub}</div>' if sub else ""
-    return f'<div class="{classes}"><div class="rc-label">{label}</div><div class="rc-value">{value}</div>{sub_html}</div>'
+    return f'<div class="{classes}"><div class="rc-label">{icon_html}{label}</div><div class="rc-value">{value}{delta_html}</div>{sub_html}</div>'
 
 
-def status_card(status, sub, css="rc-green", progress_pct=0):
+def status_card(status, sub, css="rc-green", progress_pct=0, icon=""):
+    icon_html = f'<span style="margin-right:6px;">{icon}</span>' if icon else ""
     sub_html = f'<div class="rc-sub">{sub}</div>' if sub else ""
     bar = (f'<div class="rc-progress-track" style="margin-top:8px;">'
            f'<div class="rc-progress-fill" style="width:{progress_pct}%;"></div></div>')
-    return f'<div class="rc-card {css}"><div class="rc-label">STATUS</div><div class="rc-value">{status}</div>{sub_html}{bar}</div>'
+    return f'<div class="rc-card {css}"><div class="rc-label">STATUS</div><div class="rc-value">{icon_html}{status}</div>{sub_html}{bar}</div>'
+
+
+def delta_arrow(value):
+    """Small ▲/▼/▬ indicator, colored red (worse) / green (better) /
+    neutral, used next to delay figures on the metric cards."""
+    if value is None:
+        return ""
+    if value > 0:
+        return '<span style="color:#fecaca;">▲</span>'
+    if value < 0:
+        return '<span style="color:#bbf7d0;">▼</span>'
+    return '<span style="color:#e2e8f0;">▬</span>'
 
 
 def mini_bar(label, minutes, max_minutes, color):
+    """Label sits ABOVE the bar (rc-bar-row-v) instead of to its left, so a
+    long disruption name never wraps into 3 lines next to a thin bar; the
+    title attribute keeps the full text available as a native tooltip."""
     pct = 0 if max_minutes <= 0 else min(100, (minutes / max_minutes) * 100)
-    return (f'<div class="rc-bar-row"><div class="rc-bar-label">{label}</div>'
-            f'<div class="rc-bar-track"><div class="rc-bar-fill" style="width:{pct}%; background:{color};"></div></div>'
-            f'<div class="rc-bar-value">{minutes:.0f} min</div></div>')
+    return (
+        f'<div class="rc-bar-row-v">'
+        f'<div class="rc-bar-toprow">'
+        f'<span class="rc-bar-label-v" title="{label}">{label}</span>'
+        f'<span class="rc-bar-value-v">{minutes:.0f} min</span>'
+        f'</div>'
+        f'<div class="rc-bar-track"><div class="rc-bar-fill" style="width:{pct}%; background:{color};"></div></div>'
+        f'</div>'
+    )
 
 
 def oc_item(icon, label, value):
     return f'<div class="rc-oc-item"><div class="rc-oc-icon">{icon}</div><div class="rc-oc-label">{label}</div><div class="rc-oc-value">{value}</div></div>'
+
+
+# =============================================================================
+# COLOR-CODING HELPERS — pill badges for risk/status words (Seasonal Risk,
+# Operational Actions), and a light-green→amber→red heatmap for the
+# Station Timeline's predicted_delay column.
+# =============================================================================
+def status_color_level(text):
+    """Map a risk/severity word to a pill color level."""
+    t = str(text).lower()
+    if any(k in t for k in ("low", "normal", "minimal", "on time", "good", "clear")):
+        return "green"
+    if any(k in t for k in ("elevated", "moderate", "medium", "caution", "watch")):
+        return "amber"
+    if any(k in t for k in ("high", "severe", "critical", "delayed", "alert")):
+        return "red"
+    return "gray"
+
+
+def pill_badge(text, level="gray"):
+    return f'<span class="rc-pill rc-pill-{level}">{text}</span>'
+
+
+def _lerp(c1, c2, t):
+    return tuple(int(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
+
+
+def _delay_heat_color(value, vmin, vmax):
+    rng = (vmax - vmin) or 1
+    t = max(0.0, min(1.0, (value - vmin) / rng))
+    green, amber, red = (187, 247, 208), (253, 230, 138), (252, 165, 165)
+    r, g, b = _lerp(green, amber, t / 0.5) if t < 0.5 else _lerp(amber, red, (t - 0.5) / 0.5)
+    return f"rgb({r},{g},{b})"
+
+
+def style_delay_heatmap(df, column="predicted_delay"):
+    """pandas Styler gradient (no matplotlib dependency) so the worst
+    stations pop out without reading every row."""
+    if column not in df.columns or df.empty:
+        return df
+    vmin, vmax = df[column].min(), df[column].max()
+
+    def _apply(col):
+        return [f"background-color:{_delay_heat_color(v, vmin, vmax)}; color:#1E293B; font-weight:600;" for v in col]
+
+    return df.style.apply(_apply, subset=[column])
 
 
 WEATHER_ICONS = {
@@ -341,24 +440,24 @@ actual_delay = st.session_state["feedback"].get(fb_key)
 
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
-    st.markdown(metric_card("SCHEDULED ARRIVAL", result["sch_arr"], current_station, "rc-blue"), unsafe_allow_html=True)
+    st.markdown(metric_card("SCHEDULED ARRIVAL", result["sch_arr"], current_station, "rc-blue", icon="🕐"), unsafe_allow_html=True)
 with c2:
     st.markdown(metric_card(
         "RAILCAST PREDICTED ARRIVAL", result["predicted_eta"],
-        f"+{predicted_delay:.0f} min delay", "rc-green", highlight=True
+        f"+{predicted_delay:.0f} min delay", "rc-green", highlight=True, icon="🎯", delta=predicted_delay
     ), unsafe_allow_html=True)
 with c3:
     if actual_delay is not None:
         actual_eta = compute_eta_client(result["sch_arr"], actual_delay)
-        st.markdown(metric_card("ACTUAL ARRIVAL", actual_eta, f"+{actual_delay:.0f} min delay", "rc-orange"), unsafe_allow_html=True)
+        st.markdown(metric_card("ACTUAL ARRIVAL", actual_eta, f"+{actual_delay:.0f} min delay", "rc-orange", icon="✅", delta=actual_delay), unsafe_allow_html=True)
     else:
-        st.markdown(metric_card("ACTUAL ARRIVAL", "--", "Awaiting passenger feedback", "rc-gray"), unsafe_allow_html=True)
+        st.markdown(metric_card("ACTUAL ARRIVAL", "--", "Awaiting passenger feedback", "rc-gray", icon="🕓"), unsafe_allow_html=True)
 with c4:
     if actual_delay is not None:
         error_min = abs(predicted_delay - actual_delay)
-        st.markdown(metric_card("PREDICTION ERROR", f"{error_min:.0f} min", "Our prediction vs actual", "rc-purple"), unsafe_allow_html=True)
+        st.markdown(metric_card("PREDICTION ERROR", f"{error_min:.0f} min", "Our prediction vs actual", "rc-purple", icon="📏"), unsafe_allow_html=True)
     else:
-        st.markdown(metric_card("PREDICTION ERROR", "--", "Our prediction vs actual", "rc-gray"), unsafe_allow_html=True)
+        st.markdown(metric_card("PREDICTION ERROR", "--", "Our prediction vs actual", "rc-gray", icon="📏"), unsafe_allow_html=True)
 with c5:
     # Judged by actual delay when we have it, so this card and the Actual
     # Arrival card are never contradicting each other.
@@ -366,6 +465,7 @@ with c5:
     is_delayed = effective_delay >= 10
     css = "rc-red" if is_delayed else "rc-green"
     status_text = "DELAYED" if is_delayed else "ON TIME"
+    status_icon = "⚠️" if is_delayed else "✅"
     if effective_delay <= 0:
         status_msg = "Train is running on schedule."
     elif effective_delay < 10:
@@ -374,7 +474,7 @@ with c5:
         status_msg = "Train is running behind schedule."
     progress_pct = round(min(100, ((row_index + 1) / max(1, len(journey_df))) * 100))
     sub = f"{status_msg} Currently at: {current_station} → Next: {result['next_station']}"
-    st.markdown(status_card(status_text, sub, css, progress_pct), unsafe_allow_html=True)
+    st.markdown(status_card(status_text, sub, css, progress_pct, icon=status_icon), unsafe_allow_html=True)
 
 if result.get("disruption_note"):
     st.info(f"Simulated event: {result['disruption_note']}")
@@ -426,18 +526,27 @@ with map_col:
 with timeline_col:
     st.markdown('<div class="rc-panel"><h4>🕐 Station Timeline</h4>', unsafe_allow_html=True)
     display_cols = [c for c in ["station", "next_station", "sch_arr", "eta", "predicted_delay", "low", "high"] if c in forecast.columns]
-    st.dataframe(forecast[display_cols].round(1), hide_index=True, use_container_width=True)
-    st.caption("Confidence range widens with each station further into the journey — cascading uncertainty.")
+    timeline_table = forecast[display_cols].round(1)
+    # Light green → amber → red gradient on predicted_delay so the worst
+    # stations pop out without reading every row.
+    st.dataframe(style_delay_heatmap(timeline_table), hide_index=True, use_container_width=True)
+    st.caption("Confidence range widens with each station further into the journey — cascading uncertainty. Darker red = higher predicted delay.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 if page == "Control Room / Officer":
     with side_col:
         st.markdown('<div class="rc-panel"><h4>🔧 Operational Actions</h4>', unsafe_allow_html=True)
         for action in result["actions"]:
-            if action["type"] == "Status":
-                st.success(f"**{action['type']}**: {action['message']}")
-            else:
-                st.warning(f"**{action['type']}**: {action['message']}")
+            level = status_color_level(action["type"]) if action["type"] != "Status" else "green"
+            if level == "gray":
+                level = "amber"  # non-Status actions default to amber, matching the old st.warning look
+            st.markdown(
+                f'<div style="margin-bottom:10px; display:flex; align-items:flex-start; gap:8px;">'
+                f'{pill_badge(action["type"], level)}'
+                f'<span style="font-size:0.85rem; color:#334155; line-height:1.4;">{action["message"]}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         st.markdown('</div>', unsafe_allow_html=True)
 
 # =============================================================================
@@ -458,7 +567,7 @@ with risk_col:
     st.markdown('<div class="rc-panel"><h4>🌫️ Seasonal Risk</h4>', unsafe_allow_html=True)
     with st.spinner(""):
         risk = api_risk(selected_train)
-    st.write(f"**{risk['risk']}**")
+    st.markdown(pill_badge(risk["risk"], status_color_level(risk["risk"])), unsafe_allow_html=True)
     st.caption(risk.get("message", ""))
     st.markdown('</div>', unsafe_allow_html=True)
 
