@@ -1,21 +1,20 @@
 """
-RailCast Dashboard — Streamlit frontend (v3)
+RailCast Dashboard — Streamlit frontend (v5)
 =============================================
-Rebuilt to match railcast-dashboard-spec.md. Talks to api_main.py over HTTP
-(item #4) — start both with `python run_all.py` (one terminal, see that file).
+Talks to api_main.py over HTTP. Start both with `python run_all.py` locally.
 
-Fixes in this version vs your last one:
-  - Map: no more "API key required" watermark — defaults to free OpenStreetMap
-    tiles. If you later get a free Stadia Maps key, set the STADIA_API_KEY
-    environment variable and it'll automatically switch to the lighter
-    "positron" look from the spec.
-  - The literal "</div>" text under the Status card is gone — every HTML card
-    is now built as a single unbroken line (Streamlit's markdown parser splits
-    multi-line HTML on blank lines, which is what caused that bug).
-  - New, highlighted "RailCast Predicted Arrival" card showing an actual clock
-    time (e.g. "06:04 PM"), not just "+4 min" — this is your headline PS metric.
-  - Predict/ETA/risk calls are now cached for a few seconds, which cuts down
-    the repeated network+model round-trips that were causing the lag.
+Changes in this version vs your last one:
+  - Self-starts the FastAPI backend (api_main.py) in a background thread if
+    it isn't already reachable at API_BASE. This is ONLY for Streamlit Cloud
+    deploys, where only `dashboard_app.py` gets run (Cloud does
+    `streamlit run dashboard_app.py`, it never runs `run_all.py`, so without
+    this the app would get connection errors trying to reach localhost:8000).
+    Locally, if you already started the API via `python run_all.py`, this
+    self-start check just sees the API is already up and does nothing.
+  - Everything else — Seasonal Risk explanations, the Why-this-prediction /
+    Seasonal Risk cards showing in BOTH Passenger and Officer views, the
+    layout fix that removed the white-space gap, 24-hour time formatting,
+    color-coded Operational Actions, etc. — is unchanged from your version.
 """
 
 import os
@@ -37,6 +36,11 @@ except ImportError:
 API_BASE = os.environ.get("RAILCAST_API_BASE", "http://localhost:8000")
 
 
+# =============================================================================
+# SELF-START THE API (Streamlit Cloud only runs this file, not run_all.py) —
+# if the API is already up (e.g. you started it locally via run_all.py),
+# this just confirms that and does nothing else.
+# =============================================================================
 def _api_is_up():
     try:
         return requests.get(f"{API_BASE}/", timeout=1).status_code == 200
@@ -46,10 +50,6 @@ def _api_is_up():
 
 @st.cache_resource
 def _ensure_api_running():
-    # On Streamlit Cloud (and anywhere run_all.py wasn't used to start the API
-    # separately), boot api_main.py's FastAPI app in a background thread inside
-    # this same process. cache_resource means this only runs once per app
-    # lifetime, not on every rerun.
     if _api_is_up():
         return True
     import threading
@@ -141,8 +141,8 @@ st.markdown("""
 
 
 # =============================================================================
-# API HELPERS — short TTL caches so repeated reruns (esp. the live feed
-# autorefresh) don't hammer the model with identical requests.
+# API HELPERS — short TTL caches, show_spinner=False so no per-card
+# "Running..." text appears — the dashboard loads fully before anything renders.
 # =============================================================================
 @st.cache_data(ttl=30, show_spinner=False)
 def api_get_trains():
@@ -191,7 +191,7 @@ def api_live_state():
 def compute_eta_client(sch_arr, delay_minutes):
     """Mirrors the API's compute_arrival_time — used for the Actual Arrival
     card, computed locally from the feedback the user just typed in, with no
-    extra round trip."""
+    extra round trip. 24-hour format to match the rest of the dashboard."""
     if not sch_arr or sch_arr == "--":
         return "--"
     try:
@@ -204,7 +204,7 @@ def compute_eta_client(sch_arr, delay_minutes):
 # =============================================================================
 # CARD RENDER HELPERS — built as ONE continuous line each. Do not reformat
 # these across multiple lines with a blank line in the middle; that's exactly
-# what caused the stray "</div>" text bug in the previous version.
+# what caused the stray "</div>" text bug in an earlier version.
 # =============================================================================
 def metric_card(label, value, sub="", css="rc-blue", highlight=False):
     classes = f"rc-card {css}" + (" rc-highlight" if highlight else "")
@@ -254,9 +254,8 @@ with st.sidebar:
     live_on = st.toggle(
         "🔴 Live simulated feed", value=False,
         help=("Replays your historical demo data as if trains were moving right now, one station "
-              "every few seconds (item #3 — 'behave like a live system, not a form'). It does NOT "
-              "call any real railway API; it's a replay of demo_data.csv, used to demo train-to-train "
-              "effects (#2) and the live-refresh UI. Leave it off unless you're demoing that specific feature.")
+              "every few seconds. It does NOT call any real railway API; it's a replay of "
+              "demo_data.csv, used to demo train-to-train effects and the live-refresh UI.")
     )
     if live_on:
         try:
@@ -274,10 +273,12 @@ with st.sidebar:
 
 
 # =============================================================================
-# LOAD TRAINS / JOURNEY
+# LOAD TRAINS / JOURNEY / PREDICTION — all wrapped in one silent spinner so
+# the dashboard renders complete, with no per-card loading text visible.
 # =============================================================================
 try:
-    trains = api_get_trains()
+    with st.spinner(""):
+        trains = api_get_trains()
 except Exception as e:
     st.error(f"Can't reach the API at {API_BASE}. Make sure you started everything with `python run_all.py`.\n\n{e}")
     st.stop()
@@ -298,7 +299,10 @@ st.markdown(
 bar_l, bar_m, bar_r1, bar_r2 = st.columns([1.6, 1, 1, 1])
 with bar_l:
     selected_train = st.selectbox("Select Train", trains)
-journey_df = api_get_journey(selected_train)
+
+with st.spinner(""):
+    journey_df = api_get_journey(selected_train)
+
 with bar_m:
     row_index = st.selectbox(
         "Select Journey Point", journey_df.index,
@@ -317,15 +321,16 @@ st.selectbox("⚠️ Simulate a disruption", [
 ], key="disruption")
 disruption = st.session_state.disruption
 
-live_state = api_live_state().get(str(selected_train)) if live_on else None
-
-# =============================================================================
-# METRIC CARDS — 5 across, per spec. Card 2 (ETA) is the highlighted headline.
-# =============================================================================
 with st.spinner(""):
     result = api_predict(selected_train, current_station, disruption, current_date)
     forecast = api_eta(selected_train, current_station, current_date)
 
+live_state = api_live_state().get(str(selected_train)) if live_on else None
+
+# =============================================================================
+# METRIC CARDS — 5 across. Card 2 (ETA) is the highlighted headline, 24-hour
+# format throughout.
+# =============================================================================
 predicted_delay = result["predicted_delay"]
 original_delay = result["original_predicted_delay"]
 
@@ -355,12 +360,15 @@ with c4:
     else:
         st.markdown(metric_card("PREDICTION ERROR", "--", "Our prediction vs actual", "rc-gray"), unsafe_allow_html=True)
 with c5:
-    is_delayed = predicted_delay >= 10
+    # Judged by actual delay when we have it, so this card and the Actual
+    # Arrival card are never contradicting each other.
+    effective_delay = actual_delay if actual_delay is not None else predicted_delay
+    is_delayed = effective_delay >= 10
     css = "rc-red" if is_delayed else "rc-green"
     status_text = "DELAYED" if is_delayed else "ON TIME"
-    if predicted_delay <= 0:
+    if effective_delay <= 0:
         status_msg = "Train is running on schedule."
-    elif predicted_delay < 10:
+    elif effective_delay < 10:
         status_msg = "Train is running with a small delay."
     else:
         status_msg = "Train is running behind schedule."
@@ -371,18 +379,24 @@ with c5:
 if result.get("disruption_note"):
     st.info(f"Simulated event: {result['disruption_note']}")
 if result.get("network_note"):
-    st.warning(f"🔗 **Network effect (#2):** {result['network_note']}")
+    st.warning(f"🔗 **Network effect:** {result['network_note']}")
 
 st.write("")
 
 # =============================================================================
-# MAP + TIMELINE + ACTIONS/RISK
+# TOP ROW — MAP + TIMELINE + (OFFICER-ONLY) OPERATIONAL ACTIONS
+# Only Operational Actions lives in the third column now, so all three
+# columns stay roughly equal height — this is what removes the big white-
+# space gap that showed up when Why-this-prediction and Seasonal Risk were
+# also stacked in this narrow column.
 # =============================================================================
 map_col, timeline_col, side_col = st.columns([2, 2, 1.5])
 
 with map_col:
     st.markdown('<div class="rc-panel"><h4>📍 Route Map</h4>', unsafe_allow_html=True)
     if HAS_MAP and {"latitude", "longitude"}.issubset(journey_df.columns):
+        # Plain OpenStreetMap tiles only — always free, no API key, no
+        # "API key required" watermark.
         m = folium.Map(tiles="OpenStreetMap")
         coords = list(zip(journey_df["latitude"], journey_df["longitude"]))
         folium.PolyLine(coords, color="#2563eb", weight=3).add_to(m)
@@ -406,7 +420,7 @@ with timeline_col:
     st.markdown('<div class="rc-panel"><h4>🕐 Station Timeline</h4>', unsafe_allow_html=True)
     display_cols = [c for c in ["station", "next_station", "sch_arr", "eta", "predicted_delay", "low", "high"] if c in forecast.columns]
     st.dataframe(forecast[display_cols].round(1), hide_index=True, use_container_width=True)
-    st.caption("Confidence range widens with each station further into the journey — cascading uncertainty (#1).")
+    st.caption("Confidence range widens with each station further into the journey — cascading uncertainty.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with side_col:
@@ -419,23 +433,32 @@ with side_col:
                 st.warning(f"**{action['type']}**: {action['message']}")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="rc-panel"><h4>🌫️ Seasonal Risk</h4>', unsafe_allow_html=True)
+# =============================================================================
+# SECOND ROW — WHY THIS PREDICTION + SEASONAL RISK (both views, full width,
+# 50/50 split)
+# =============================================================================
+why_col, risk_col = st.columns(2)
+with why_col:
+    st.markdown('<div class="rc-panel"><h4>ℹ️ Why this prediction?</h4>', unsafe_allow_html=True)
+    drivers = result["top_drivers"]
+    st.write(f"Mainly driven by: **{drivers[0]['feature']}** ({drivers[0]['direction']} the delay)")
+    if len(drivers) > 1:
+        st.write(f"Also contributing: **{drivers[1]['feature']}**")
+    st.write(f"Current weather: **{result['weather_label']}**")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with risk_col:
+    st.markdown('<div class="rc-panel"><h4>🌫️ Seasonal Risk</h4>', unsafe_allow_html=True)
+    with st.spinner(""):
         risk = api_risk(selected_train)
-        st.write(f"**{risk['risk']}**")
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="rc-panel"><h4>ℹ️ Why this prediction?</h4>', unsafe_allow_html=True)
-        drivers = result["top_drivers"]
-        st.write(f"Mainly driven by: **{drivers[0]['feature']}** ({drivers[0]['direction']} the delay)")
-        if len(drivers) > 1:
-            st.write(f"Also contributing: **{drivers[1]['feature']}**")
-        st.write(f"Current weather: **{result['weather_label']}**")
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.write(f"**{risk['risk']}**")
+    st.caption(risk.get("message", ""))
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.write("")
 
 # =============================================================================
-# DISRUPTION SIMULATOR (mini bar chart) + DISRUPTION SHIFT CALLOUT
+# DISRUPTION SIMULATOR (+ PASSENGER FEEDBACK ONLY IN PASSENGER VIEW)
 # =============================================================================
 if page == "Control Room / Officer":
     st.markdown('<div class="rc-panel"><h4>⚡ What-if Disruption Simulator</h4>', unsafe_allow_html=True)
