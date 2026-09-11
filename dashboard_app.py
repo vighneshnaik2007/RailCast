@@ -390,7 +390,14 @@ st.write("")
 # space gap that showed up when Why-this-prediction and Seasonal Risk were
 # also stacked in this narrow column.
 # =============================================================================
-map_col, timeline_col, side_col = st.columns([2, 2, 1.5])
+if page == "Control Room / Officer":
+    map_col, timeline_col, side_col = st.columns([2, 2, 1.5])
+else:
+    # No Operational Actions panel in Passenger view, so there's no third
+    # column to fill — give the map and timeline more room instead, with a
+    # visible gap between them, rather than leaving blank space on the right.
+    map_col, timeline_col = st.columns([1, 1], gap="large")
+    side_col = None
 
 with map_col:
     st.markdown('<div class="rc-panel"><h4>📍 Route Map</h4>', unsafe_allow_html=True)
@@ -423,8 +430,8 @@ with timeline_col:
     st.caption("Confidence range widens with each station further into the journey — cascading uncertainty.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with side_col:
-    if page == "Control Room / Officer":
+if page == "Control Room / Officer":
+    with side_col:
         st.markdown('<div class="rc-panel"><h4>🔧 Operational Actions</h4>', unsafe_allow_html=True)
         for action in result["actions"]:
             if action["type"] == "Status":
