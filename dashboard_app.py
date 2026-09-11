@@ -149,7 +149,7 @@ st.markdown("""
        small/muted sub-line — makes the delay & ETA figures pop. ---- */
     .rc-card .rc-label { font-size: 0.68rem; opacity: 0.85; letter-spacing: 0.06em;
         margin-bottom: 6px; font-weight: 700; text-transform: uppercase; }
-    .rc-card .rc-value { font-size: 1.85rem; font-weight: 800; line-height: 1.15; }
+    .rc-card .rc-value { font-size: 1.80rem; font-weight: 800; line-height: 1.15; }
     .rc-card .rc-sub { font-size: 0.72rem; opacity: 0.85; margin-top: 4px; }
     .rc-delta { font-size: 1rem; margin-left: 6px; font-weight: 700; }
 
